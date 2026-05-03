@@ -1,11 +1,15 @@
 ---
-name: openclaw-dev-loop
-description: Implement OpenClaw bug fixes, small features, and code changes in a separate worktree from origin/main, run local validation plus repeated codex review loops, commit with repo conventions, publish a ready PR, and address automated review comments until clean.
+name: openclaw-pr-workflow
+description: "Guide unofficial contributor-safe OpenClaw PR work: verify behavior, make focused changes in a clean worktree, run local validation and Codex review, publish a ready PR, and handle automated feedback without using maintainer-only infrastructure."
 ---
 
-# OpenClaw Dev Loop
+# OpenClaw PR Workflow
 
-Use this skill for ordinary OpenClaw development tasks that should end in a ready PR. Do not use it for release publishing, GHSA/advisory work, broad maintainer triage, or landing someone else's PR; use the dedicated OpenClaw skills for those workflows.
+Use this skill for ordinary contributor PR work against `openclaw/openclaw`: bug fixes, small features, tests, docs tied to code behavior, and focused follow-up on review feedback.
+
+This is an unofficial contributor workflow. It does not override OpenClaw's repository instructions, grant maintainer permissions, or make maintainer-only infrastructure available. When this skill conflicts with `AGENTS.md`, scoped `AGENTS.md`, repository docs, or maintainer direction, follow the repository or maintainer instruction.
+
+Do not use this workflow for release publishing, GHSA/advisory work, broad maintainer triage, landing someone else's PR, or any task that requires maintainer authority unless the user explicitly confirms that authority and asks for that workflow.
 
 ## Non-Negotiables
 
@@ -17,7 +21,9 @@ Use this skill for ordinary OpenClaw development tasks that should end in a read
 - Wait for every `codex review --base origin/main` run to finish. Do not stop early because it is slow.
 - Address every actionable local Codex review finding, then rerun `codex review --base origin/main`. Repeat until it returns no actionable feedback.
 - After publishing, wait for automatic reviews to finish. Address actionable comments, push fixes, and repeat until no actionable review comments remain.
+- Do not post maintainer-only bot-control comments from contributor PRs. This includes `@clawsweeper re-review`, `@clawsweeper review`, `@clawsweeper fix ci`, `@clawsweeper autofix`, `@clawsweeper automerge`, slash review commands, and similar bot commands. Before any public bot-control comment, verify the current GitHub actor is `OWNER`, `MEMBER`, or `COLLABORATOR`, or has `admin`, `maintain`, or `write` permission. If not, report in chat that maintainer re-review or maintainer action is needed instead.
 - Do not add PR text that implies manual verification was not done. Separate agent-run validation from user/manual verification, and do not claim the agent manually verified something it did not verify.
+- Do not invoke Blacksmith/Testbox (`blacksmith testbox ...`, `pnpm testbox:*`, warmups, claims, or remote runs) as part of this skill unless the user explicitly asks for maintainer/Testbox proof. Contributor dev-loop work uses focused local validation and GitHub PR CI for broad proof.
 
 ## Start From Main
 
@@ -42,11 +48,14 @@ git worktree add ../openclaw-<short-slug> -b codex/<short-slug> origin/main
 - Verify source behavior before deciding on a fix: code path, tests, current shipped behavior, dependency docs/types/source, and relevant contracts.
 - Keep changes focused. Add or update the smallest reliable regression coverage for bug fixes when feasible.
 - Follow OpenClaw's AGENTS/docs changelog guidance for user-facing behavior, API, docs, or release-note-worthy changes.
-- Prefer repo lanes:
+- Validation is contributor-safe by default:
   - targeted tests for the touched code
-  - `pnpm test:changed` for tests-only edits
-  - `pnpm check:changed` before handoff, commit, or push
-  - `pnpm build` before push when build output, packaging, lazy/module boundaries, or published surfaces changed
+  - targeted formatter, lint, or type probes for the touched files when available
+  - `pnpm changed:lanes --json` when useful to explain scope
+  - `pnpm test:changed` for tests-only edits only when it stays bounded and local; stop if it fans out into broad/shared lanes
+  - do not run `pnpm check:changed` as a blanket pre-handoff, pre-commit, or pre-push gate when repo instructions would route it to Testbox or when it selects broad/shared lanes; rely on GitHub PR CI for that broad matrix proof
+  - `pnpm build` before push when build output, packaging, lazy/module boundaries, or published surfaces changed and the build is feasible locally
+- If an `AGENTS.md` says broad gates belong in Testbox, treat that as maintainer-only infrastructure for this skill. Do not try Testbox; say that broad validation is covered by PR CI unless the user explicitly requested Testbox.
 - If dependencies are missing, run `pnpm install`, retry once, then report the first actionable error if still blocked.
 
 ## Codex Review Loop
@@ -69,7 +78,7 @@ Only exit this loop when the latest completed local Codex review has no actionab
 
 ## Commit
 
-- Use `scripts/committer` for scoped commits:
+- Use OpenClaw's commit helper for scoped commits when it is available:
 
 ```bash
 scripts/committer "fix(scope): concise summary" <file> [<file> ...]
@@ -79,6 +88,7 @@ scripts/committer "fix(scope): concise summary" <file> [<file> ...]
 - Keep the subject concise, conventional-ish, and action-oriented.
 - Add a body only when the change needs context; include root cause, validation, or compatibility notes rather than generic AI/process language.
 - Do not include `[codex]` or similar markers in the commit subject.
+- If the helper is unavailable, stage only intended files and use an equivalent conventional-ish `git commit` without process labels.
 
 ## Publish Ready PR
 
@@ -101,6 +111,7 @@ PR title and body rules:
 - If repo policy asks for AI assistance disclosure, put it in the PR body, not the title.
 - Describe the bug/behavior, affected surface, root cause, fix, tests, and local Codex review result.
 - For human verification, state concrete manual verification details the user supplied or a neutral line such as `User manual verification: owner performs final manual verification outside this agent run.` Do not write phrases like "didn't verify a full iteration", "not manually verified", or equivalent weak-verification disclaimers.
+- Do not describe missing Testbox access as a validation failure unless the user explicitly asked for Testbox. For normal contributor-style PRs, use a line such as `Broad validation: GitHub PR CI.`.
 
 ## Post-PR Review Loop
 
@@ -108,7 +119,7 @@ After opening or updating the PR:
 
 1. Wait for automatic reviews and relevant checks on the exact PR head SHA. Poll at reasonable intervals.
 2. Fetch review submissions, review threads, and PR comments, not just top-level comments.
-3. Address every actionable automated review comment in code or with a concise evidence-backed reply.
+3. Address every actionable automated review comment in code or with a concise evidence-backed reply. Do not trigger maintainer-only review bots as a workaround for stale or missing bot updates.
 4. Resolve conversations that are fully addressed when the tool surface allows it.
 5. Push fixes and rerun:
 

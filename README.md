@@ -8,6 +8,7 @@ It guides an agent through a practical PR flow:
 - start from a clean worktree based on `origin/main`
 - verify the bug or behavior before changing code
 - keep the diff focused
+- prefer safe default behavior over new config or option surface
 - run targeted local validation and `codex review --base origin/main`
 - publish a ready PR with concrete evidence
 - address automated review feedback without using maintainer-only infrastructure
@@ -42,4 +43,3 @@ Use the openclaw-pr-workflow skill to fix this OpenClaw bug and open a ready PR.
 
 Use a different workflow for releases, security advisories, broad maintainer triage,
 or landing someone else's PR.
-

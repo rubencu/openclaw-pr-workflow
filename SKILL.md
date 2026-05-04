@@ -21,9 +21,10 @@ Do not use this workflow for release publishing, GHSA/advisory work, broad maint
 - Wait for every `codex review --base origin/main` run to finish. Do not stop early because it is slow.
 - Address every actionable local Codex review finding, then rerun `codex review --base origin/main`. Repeat until it returns no actionable feedback.
 - After publishing, wait for automatic reviews to finish. Address actionable comments, push fixes, and repeat until no actionable review comments remain.
-- Do not post maintainer-only bot-control comments from contributor PRs. This includes `@clawsweeper re-review`, `@clawsweeper review`, `@clawsweeper fix ci`, `@clawsweeper autofix`, `@clawsweeper automerge`, slash review commands, and similar bot commands. Before any public bot-control comment, verify the current GitHub actor is `OWNER`, `MEMBER`, or `COLLABORATOR`, or has `admin`, `maintain`, or `write` permission. If not, report in chat that maintainer re-review or maintainer action is needed instead.
+- Do not post maintainer-only bot-control comments from contributor PRs. This includes `@clawsweeper re-review`, `@clawsweeper review`, `@clawsweeper fix ci`, `@clawsweeper autofix`, `@clawsweeper automerge`, slash review commands, and similar bot commands. Before any public bot-control comment, verify the current GitHub actor is `OWNER`, `MEMBER`, or `COLLABORATOR`, or has `admin`, `maintain`, or `write` permission. If not, report in chat that maintainer re-review or maintainer action is needed instead; do not leave the command comment.
 - Do not add PR text that implies manual verification was not done. Separate agent-run validation from user/manual verification, and do not claim the agent manually verified something it did not verify.
 - Do not invoke Blacksmith/Testbox (`blacksmith testbox ...`, `pnpm testbox:*`, warmups, claims, or remote runs) as part of this skill unless the user explicitly asks for maintainer/Testbox proof. Contributor dev-loop work uses focused local validation and GitHub PR CI for broad proof.
+- Do not add new config options, CLI flags, env vars, channel knobs, or user-visible switches by default. Prefer a safe default behavior fix. Add configurable surface only when maintainers explicitly ask for it, repo docs already require it, or the behavior cannot safely be defaulted.
 
 ## Start From Main
 
@@ -43,10 +44,21 @@ git worktree add ../openclaw-<short-slug> -b codex/<short-slug> origin/main
 
 5. Do all implementation, tests, commits, and PR work inside the new worktree. Leave unrelated dirty state in the original checkout untouched.
 
+## Scope For Maintainers
+
+Before editing, run a scope preflight:
+
+1. Identify the smallest current behavior defect or docs mismatch the PR should fix.
+2. Check whether the fix can be a safe default with no new public surface.
+3. If the first idea adds a config option, CLI flag, env var, channel/account knob, generated schema entry, docs option, or compatibility branch, step back and try the behavior-only fix first.
+4. Add a new knob only when there is concrete evidence that two supported user groups need different behavior, or when a maintainer asked for the knob. Otherwise, the extra option increases config, docs, generated metadata, and test matrix surface for maintainers.
+5. Keep the patch easy to extract. If maintainers decide to keep the behavior but remove a knob or broadening detail, treat that as accepted product direction and update the PR instead of defending the extra surface.
+
 ## Develop And Prove
 
 - Verify source behavior before deciding on a fix: code path, tests, current shipped behavior, dependency docs/types/source, and relevant contracts.
 - Keep changes focused. Add or update the smallest reliable regression coverage for bug fixes when feasible.
+- Prefer hardening existing behavior behind existing contracts over adding optional behavior branches.
 - Follow OpenClaw's AGENTS/docs changelog guidance for user-facing behavior, API, docs, or release-note-worthy changes.
 - Validation is contributor-safe by default:
   - targeted tests for the touched code
@@ -110,6 +122,7 @@ PR title and body rules:
 - Do not include `[codex]`, `Codex`, AI-assistance markers, or similar process labels in the title.
 - If repo policy asks for AI assistance disclosure, put it in the PR body, not the title.
 - Describe the bug/behavior, affected surface, root cause, fix, tests, and local Codex review result.
+- Call out public-surface impact when relevant: `No new config surface.` or, if a knob was unavoidable, explain why a safe default was not enough.
 - For human verification, state concrete manual verification details the user supplied or a neutral line such as `User manual verification: owner performs final manual verification outside this agent run.` Do not write phrases like "didn't verify a full iteration", "not manually verified", or equivalent weak-verification disclaimers.
 - Do not describe missing Testbox access as a validation failure unless the user explicitly asked for Testbox. For normal contributor-style PRs, use a line such as `Broad validation: GitHub PR CI.`.
 

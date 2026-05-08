@@ -59,7 +59,7 @@ Before editing, run a scope preflight:
 - Verify source behavior before deciding on a fix: code path, tests, current shipped behavior, dependency docs/types/source, and relevant contracts.
 - Keep changes focused. Add or update the smallest reliable regression coverage for bug fixes when feasible.
 - Prefer hardening existing behavior behind existing contracts over adding optional behavior branches.
-- Follow OpenClaw's AGENTS/docs changelog guidance for user-facing behavior, API, docs, or release-note-worthy changes.
+- Do not add or edit `CHANGELOG.md` from contributor PRs. Changelog entries are maintainer-owned; only touch them when a maintainer explicitly asks for it.
 - Validation is contributor-safe by default:
   - targeted tests for the touched code
   - targeted formatter, lint, or type probes for the touched files when available

@@ -21,6 +21,7 @@ Do not use this workflow for release publishing, GHSA/advisory work, broad maint
 - Wait for every `codex review --base origin/main` run to finish. Do not stop early because it is slow.
 - Address every actionable local Codex review finding, then rerun `codex review --base origin/main`. Repeat until it returns no actionable feedback.
 - After publishing, wait for automatic reviews to finish. Address actionable comments, push fixes, and repeat until no actionable review comments remain.
+- Treat `main` freshness as a bounded checkpoint, not an infinite chase. OpenClaw `main` can move extremely fast, with thousands of commits per day; it is impossible to prove a contributor PR is always rebased on the newest remote tip. Start from `origin/main`, refresh at natural checkpoints, and rebase again only for actual conflicts, stale-base CI failures, maintainer request, or meaningful integration risk.
 - Do not post maintainer-only bot-control comments from contributor PRs. This includes `@clawsweeper re-review`, `@clawsweeper review`, `@clawsweeper fix ci`, `@clawsweeper autofix`, `@clawsweeper automerge`, slash review commands, and similar bot commands. Before any public bot-control comment, verify the current GitHub actor is `OWNER`, `MEMBER`, or `COLLABORATOR`, or has `admin`, `maintain`, or `write` permission. If not, report in chat that maintainer re-review or maintainer action is needed instead; do not leave the command comment.
 - Do not add PR text that implies manual verification was not done. Separate agent-run validation from user/manual verification, and do not claim the agent manually verified something it did not verify.
 - Do not invoke Blacksmith/Testbox (`blacksmith testbox ...`, `pnpm testbox:*`, warmups, claims, or remote runs) as part of this skill unless the user explicitly asks for maintainer/Testbox proof. Contributor dev-loop work uses focused local validation and GitHub PR CI for broad proof.
@@ -104,7 +105,7 @@ scripts/committer "fix(scope): concise summary" <file> [<file> ...]
 
 ## Publish Ready PR
 
-1. Rebase on current main before pushing:
+1. Refresh once against current main before pushing, unless the branch was already rebased recently and there is no evidence of conflict or stale-base risk. Do not keep rebasing only because `origin/main` advanced again while validation, review, or push work is in progress:
 
 ```bash
 git fetch origin main

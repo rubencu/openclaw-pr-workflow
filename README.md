@@ -9,9 +9,11 @@ It guides an agent through a practical PR flow:
 - verify the bug or behavior before changing code
 - keep the diff focused
 - prefer safe default behavior over new config or option surface
+- produce real behavior proof from the exact PR head when OpenClaw asks for it
 - run targeted local validation and `codex review --base origin/main`
 - publish a ready PR with concrete evidence
-- address automated review feedback without using maintainer-only infrastructure
+- address threaded and top-level automated review feedback without using maintainer-only infrastructure
+- classify changelog-only drift separately from real code conflicts during PR maintenance
 
 This repository is personal workflow guidance. It is not official OpenClaw policy,
 does not grant maintainer permissions, and does not replace the repository's

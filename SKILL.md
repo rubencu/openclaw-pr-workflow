@@ -26,6 +26,8 @@ Do not use this workflow for release publishing, GHSA/advisory work, broad maint
 - Do not add PR text that implies manual verification was not done. Separate agent-run validation from user/manual verification, and do not claim the agent manually verified something it did not verify.
 - Do not invoke Blacksmith/Testbox (`blacksmith testbox ...`, `pnpm testbox:*`, warmups, claims, or remote runs) as part of this skill unless the user explicitly asks for maintainer/Testbox proof. Contributor dev-loop work uses focused local validation and GitHub PR CI for broad proof.
 - Do not add new config options, CLI flags, env vars, channel knobs, or user-visible switches by default. Prefer a safe default behavior fix. Add configurable surface only when maintainers explicitly ask for it, repo docs already require it, or the behavior cannot safely be defaulted.
+- Treat real-behavior proof as exact-head, after-fix evidence. Historical logs can prove the old bug, but they do not prove the fix unless they come from a checkout containing the PR head.
+- Do not call a PR ready from mergeability or green checks alone. Check unresolved review threads, top-level bot comments, current labels, and the exact PR head SHA.
 
 ## Start From Main
 
@@ -61,6 +63,7 @@ Before editing, run a scope preflight:
 - Keep changes focused. Add or update the smallest reliable regression coverage for bug fixes when feasible.
 - Prefer hardening existing behavior behind existing contracts over adding optional behavior branches.
 - Do not add or edit `CHANGELOG.md` from contributor PRs. Changelog entries are maintainer-owned; only touch them when a maintainer explicitly asks for it.
+- Cover every new behavior branch introduced by the patch when feasible. If a branch cannot be covered locally, say exactly which branch remains uncovered and why; do not hide behind a green aggregate test run.
 - Validation is contributor-safe by default:
   - targeted tests for the touched code
   - targeted formatter, lint, or type probes for the touched files when available
@@ -70,6 +73,17 @@ Before editing, run a scope preflight:
   - `pnpm build` before push when build output, packaging, lazy/module boundaries, or published surfaces changed and the build is feasible locally
 - If an `AGENTS.md` says broad gates belong in Testbox, treat that as maintainer-only infrastructure for this skill. Do not try Testbox; say that broad validation is covered by PR CI unless the user explicitly requested Testbox.
 - If dependencies are missing, run `pnpm install`, retry once, then report the first actionable error if still blocked.
+
+## Real Behavior Proof
+
+When the PR template, labels, CI, ClawSweeper, or the user asks for real behavior proof:
+
+1. Fetch/read the current proof policy from the repo before interpreting labels or schema. Start with `.github/pull_request_template.md`, `CONTRIBUTING.md`, `.github/workflows/real-behavior-proof.yml`, and `scripts/github/real-behavior-proof-policy.mjs` when present.
+2. Prove the failure on `origin/main` or another explicit base when the user asks for proof of the problem, or when a before/after claim would otherwise be weak.
+3. Prove the fix from a checkout containing the exact PR head. Record the head SHA, command or real workflow, environment, evidence after fix, observed result, and anything not tested.
+4. Treat tests, mocks, snapshots, lint, typechecks, and CI as supplemental. They support real behavior proof, but they do not replace real-environment after-fix evidence when the repo requires it.
+5. For gateway/runtime proof, isolate `HOME`/`OPENCLAW_HOME`, ports, tokens, generated artifacts, and logs so stale local state or mixed proof logs cannot contaminate the result.
+6. Before editing the PR body, validate the proposed proof text with `scripts/github/real-behavior-proof-policy.mjs` when available so the body satisfies the parser on the first try.
 
 ## Codex Review Loop
 
@@ -124,6 +138,7 @@ PR title and body rules:
 - If repo policy asks for AI assistance disclosure, put it in the PR body, not the title.
 - Describe the bug/behavior, affected surface, root cause, fix, tests, and local Codex review result.
 - Call out public-surface impact when relevant: `No new config surface.` or, if a knob was unavoidable, explain why a safe default was not enough.
+- Fill any `Real behavior proof` section with the exact fields the current template/checker expects. Use after-fix evidence from the PR head, not only historical bug evidence.
 - For human verification, state concrete manual verification details the user supplied or a neutral line such as `User manual verification: owner performs final manual verification outside this agent run.` Do not write phrases like "didn't verify a full iteration", "not manually verified", or equivalent weak-verification disclaimers.
 - Do not describe missing Testbox access as a validation failure unless the user explicitly asked for Testbox. For normal contributor-style PRs, use a line such as `Broad validation: GitHub PR CI.`.
 
@@ -132,8 +147,8 @@ PR title and body rules:
 After opening or updating the PR:
 
 1. Wait for automatic reviews and relevant checks on the exact PR head SHA. Poll at reasonable intervals.
-2. Fetch review submissions, review threads, and PR comments, not just top-level comments.
-3. Address every actionable automated review comment in code or with a concise evidence-backed reply. Do not trigger maintainer-only review bots as a workaround for stale or missing bot updates.
+2. Fetch review submissions, review threads, top-level PR comments, labels, and status rollup. ClawSweeper or policy feedback can live in top-level comments even when GraphQL `reviewThreads` is empty.
+3. Address every actionable automated review comment in code or with a concise evidence-backed reply. If the current diff already resolves a stale comment, say that with evidence instead of changing code unnecessarily. Do not trigger maintainer-only review bots as a workaround for stale or missing bot updates.
 4. Resolve conversations that are fully addressed when the tool surface allows it.
 5. Push fixes and rerun:
 
@@ -144,3 +159,13 @@ codex review --base origin/main
 6. Wait for the updated automatic reviews again.
 
 Repeat until automatic reviews are complete and there are no unresolved actionable comments. Stop only for a real blocker such as missing permissions, unavailable review tooling after retry, unrelated failing main CI with proof, or explicit user instruction.
+
+## Existing PR Maintenance
+
+For existing PR refreshes, sweeps, and conflict triage:
+
+- Locate the active worktree with `git worktree list --porcelain` and `git branch -vv` before editing; do not use the root checkout out of convenience if the PR already has a worktree.
+- Use `git merge-tree --write-tree --name-only origin/main <pr-ref>` or the closest current equivalent to separate real code conflicts from `CHANGELOG.md`-only drift.
+- Treat `CHANGELOG.md`-only conflicts or stale changelog comments as maintainer-owned drift unless a maintainer explicitly asks the contributor to change the changelog.
+- Rebase only for real conflicts, stale-base check failures, maintainer request, or a concrete validation reason.
+- For repo-wide sweeps, finish with a fresh full inventory of open PRs, mergeability, status rollup, unresolved review threads, top-level bot comments, and labels before handing off.

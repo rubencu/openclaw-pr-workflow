@@ -28,6 +28,7 @@ Do not use this workflow for release publishing, GHSA/advisory work, broad maint
 - Do not add new config options, CLI flags, env vars, channel knobs, or user-visible switches by default. Prefer a safe default behavior fix. Add configurable surface only when maintainers explicitly ask for it, repo docs already require it, or the behavior cannot safely be defaulted.
 - Treat real-behavior proof as exact-head, after-fix evidence. Historical logs can prove the old bug, but they do not prove the fix unless they come from a checkout containing the PR head.
 - Do not call a PR ready from mergeability or green checks alone. Check unresolved review threads, top-level bot comments, current labels, and the exact PR head SHA.
+- Do not treat automated "best possible fix" wording as proof by itself. It is only decision-grade when the review also checked the relevant owner contract, adjacent implementations, and plausible maintainer-level alternatives.
 
 ## Start From Main
 
@@ -56,6 +57,18 @@ Before editing, run a scope preflight:
 3. If the first idea adds a config option, CLI flag, env var, channel/account knob, generated schema entry, docs option, or compatibility branch, step back and try the behavior-only fix first.
 4. Add a new knob only when there is concrete evidence that two supported user groups need different behavior, or when a maintainer asked for the knob. Otherwise, the extra option increases config, docs, generated metadata, and test matrix surface for maintainers.
 5. Keep the patch easy to extract. If maintainers decide to keep the behavior but remove a knob or broadening detail, treat that as accepted product direction and update the PR instead of defending the extra surface.
+
+## Contract And Ownership Pass
+
+Use this pass for nontrivial runtime changes, lifecycle/events, harness behavior, provider/channel/tool contracts, dependency-backed behavior, or any PR that has sat open across meaningful `main` or dependency movement.
+
+Before calling the patch best-available or ready:
+
+1. Name the owning module or dependency contract for the behavior. Prefer actual exported types, schemas, source files, docs, or upstream package declarations over locally duplicated string unions.
+2. Check adjacent implementations that handle the same concept, such as other harnesses, channels, providers, hooks, or dispatch paths. The question is whether the patch fits the system contract, not only whether the diff is locally correct.
+3. Prefer reusing the owner contract or adding a narrow generic seam over copying event shapes, policy state, or lifecycle meanings into the touched file. If a local adapter or fallback is needed for legacy tests or synthetic fixtures, keep it explicit and covered.
+4. Have the "conversation with the AI" explicitly: ask whether there is a better owner-level or contract-level fix than the narrow diff, and require file/type evidence in the answer. Do not stop at a clean patch-local review when this pass applies.
+5. If the broader pass finds no better shape, say that modestly: `patch appears correct against the current owner contract`. Avoid PR text or handoff wording that says `best possible fix` unless the owner contract and alternatives were actually checked.
 
 ## Develop And Prove
 
@@ -102,6 +115,8 @@ codex review --base origin/main
 6. Rerun `codex review --base origin/main`.
 
 Only exit this loop when the latest completed local Codex review has no actionable findings. If Codex review cannot run because of auth, tool, or service failure, retry once; if still blocked, report the blocker with the exact error instead of publishing as if review passed.
+
+A clean local Codex review is a patch-local signal. For changes covered by the Contract And Ownership Pass, also record the broader answer in the handoff or PR-prep notes before treating the patch as ready.
 
 ## Commit
 
@@ -168,4 +183,5 @@ For existing PR refreshes, sweeps, and conflict triage:
 - Use `git merge-tree --write-tree --name-only origin/main <pr-ref>` or the closest current equivalent to separate real code conflicts from `CHANGELOG.md`-only drift.
 - Treat `CHANGELOG.md`-only conflicts or stale changelog comments as maintainer-owned drift unless a maintainer explicitly asks the contributor to change the changelog.
 - Rebase only for real conflicts, stale-base check failures, maintainer request, or a concrete validation reason.
+- For long-lived PRs, do not just resolve conflicts and rerun tests. Re-check whether `main` or dependency movement changed the owner contract, adjacent harness behavior, or the right place for the fix.
 - For repo-wide sweeps, finish with a fresh full inventory of open PRs, mergeability, status rollup, unresolved review threads, top-level bot comments, and labels before handing off.

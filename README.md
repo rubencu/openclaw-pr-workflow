@@ -15,6 +15,13 @@ It guides an agent through a practical PR flow:
 - address threaded and top-level automated review feedback without using maintainer-only infrastructure
 - classify changelog-only drift separately from real code conflicts during PR maintenance
 
+It does not require `gitcrawl`. That tool is useful for maintainer
+triage/discovery and optional local `gh` caching, but contributor PR work should
+still run cleanly with live `gh`/`gh api`. For live PR state, the skill prefers
+contributor-safe `gh api` REST reads and `gh pr diff`; `gh pr view` is only a
+quick preview path because older GitHub CLI GraphQL queries can hit deprecated
+Projects Classic fields such as `projectCards`.
+
 This repository is personal workflow guidance. It is not official OpenClaw policy,
 does not grant maintainer permissions, and does not replace the repository's
 `AGENTS.md`, scoped instructions, docs, or maintainer direction.

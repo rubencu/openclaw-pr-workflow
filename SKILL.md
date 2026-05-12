@@ -25,6 +25,7 @@ Do not use this workflow for release publishing, GHSA/advisory work, broad maint
 - Do not post maintainer-only bot-control comments from contributor PRs. This includes `@clawsweeper re-review`, `@clawsweeper review`, `@clawsweeper fix ci`, `@clawsweeper autofix`, `@clawsweeper automerge`, slash review commands, and similar bot commands. Before any public bot-control comment, verify the current GitHub actor is `OWNER`, `MEMBER`, or `COLLABORATOR`, or has `admin`, `maintain`, or `write` permission. If not, report in chat that maintainer re-review or maintainer action is needed instead; do not leave the command comment.
 - Do not add PR text that implies manual verification was not done. Separate agent-run validation from user/manual verification, and do not claim the agent manually verified something it did not verify.
 - Do not invoke Blacksmith/Testbox (`blacksmith testbox ...`, `pnpm testbox:*`, warmups, claims, or remote runs) as part of this skill unless the user explicitly asks for maintainer/Testbox proof. Contributor dev-loop work uses focused local validation and GitHub PR CI for broad proof.
+- Do not require or preflight `gitcrawl`. `gitcrawl` is maintainer triage/discovery tooling and an optional local `gh` cache for agents; ordinary contributor PR work should proceed without it. If another OpenClaw repo instruction forces a maintainer read path for a pasted PR or issue URL, treat missing `gitcrawl` as a quiet reason to use live GitHub instead, not as a contributor setup problem.
 - Do not add new config options, CLI flags, env vars, channel knobs, or user-visible switches by default. Prefer a safe default behavior fix. Add configurable surface only when maintainers explicitly ask for it, repo docs already require it, or the behavior cannot safely be defaulted.
 - Treat real-behavior proof as exact-head, after-fix evidence. Historical logs can prove the old bug, but they do not prove the fix unless they come from a checkout containing the PR head.
 - Do not call a PR ready from mergeability or green checks alone. Check unresolved review threads, top-level bot comments, current labels, and the exact PR head SHA.
@@ -117,6 +118,42 @@ codex review --base origin/main
 Only exit this loop when the latest completed local Codex review has no actionable findings. If Codex review cannot run because of auth, tool, or service failure, retry once; if still blocked, report the blocker with the exact error instead of publishing as if review passed.
 
 A clean local Codex review is a patch-local signal. For changes covered by the Contract And Ownership Pass, also record the broader answer in the handoff or PR-prep notes before treating the patch as ready.
+
+## Contributor GitHub Read Path
+
+For ordinary contributor PR work, gather live PR facts from GitHub with `gh api`
+REST endpoints instead of maintainer archive tools.
+
+Use `gh pr diff` for the patch and a REST snapshot for structured state:
+
+```bash
+PR=<number>
+REPO=openclaw/openclaw
+gh api "repos/$REPO/pulls/$PR" \
+  --jq '{number,title,state,draft,mergeable,mergeable_state,head:{ref:.head.ref,sha:.head.sha,repo:.head.repo.full_name},base:{ref:.base.ref,sha:.base.sha},user:.user.login,changed_files,additions,deletions,merged,merged_at,url:.html_url}'
+gh api "repos/$REPO/pulls/$PR/files" --paginate \
+  --jq '[.[] | {filename,status,additions,deletions,changes}]'
+gh api "repos/$REPO/pulls/$PR/reviews" --paginate \
+  --jq '[.[] | {user:.user.login,state,submitted_at,body}]'
+gh api "repos/$REPO/issues/$PR/comments" --paginate \
+  --jq '[.[] | {user:.user.login,created_at,body}]'
+gh pr diff "$PR" --repo "$REPO"
+```
+
+Then check the exact head SHA:
+
+```bash
+HEAD_SHA=$(gh api "repos/$REPO/pulls/$PR" --jq '.head.sha')
+gh api "repos/$REPO/commits/$HEAD_SHA/check-runs" \
+  -H "Accept: application/vnd.github+json" \
+  --jq '[.check_runs[] | {name,status,conclusion,details_url}]'
+```
+
+Use `gh pr view` only as a quick human-readable preview. Avoid depending on
+`gh pr view --json` for the full workflow snapshot when it trips over GitHub
+CLI GraphQL compatibility issues such as deprecated Projects Classic
+`projectCards` fields; the REST endpoints above provide the same contributor
+facts without requiring maintainer-only infrastructure.
 
 ## Commit
 

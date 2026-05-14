@@ -17,6 +17,7 @@ Do not use this workflow for release publishing, GHSA/advisory work, broad maint
 - Never put `[codex]`, `codex:`, AI-assistance markers, or similar process labels in the PR title.
 - Use a conventional-ish title and commit subject, such as `fix(scope): summary` or `test(scope): summary`.
 - Before committing, publishing, or updating a PR, compare the commit subject/body and PR title/body with the actual diff and validation. Amend commits and edit PR metadata whenever they are stale, overbroad, or missing material behavior.
+- Never leave PR-template placeholder text, instructional comments, example values, or TODO/TBD filler in the PR title or description. Preserve required headings/checklist labels only when the repo template or checker expects them; replace or remove placeholder content before `gh pr create`, `gh pr edit`, or equivalent UI updates.
 - Create the PR as ready for review, never draft.
 - Run `codex review --base origin/main` after every change batch and again before publishing.
 - Wait for every `codex review --base origin/main` run to finish. Do not stop early because it is slow.
@@ -191,6 +192,7 @@ PR title and body rules:
 - Title uses the repo convention, for example `fix(scope): summary`.
 - Do not include `[codex]`, `Codex`, AI-assistance markers, or similar process labels in the title.
 - If repo policy asks for AI assistance disclosure, put it in the PR body, not the title.
+- Read the final PR title and body as plain user-visible text before opening or updating the PR. Remove any template placeholder prose, HTML comments, sample text, `TODO`, `TBD`, bracketed fill-ins, or generic prompts such as `Describe the change`; do not rely on GitHub rendering or bots to hide or clean it.
 - Before opening or updating the PR, compare the title and description against the final branch diff, exact-head proof, and validation actually run. Edit the title or body when the scope, behavior, proof, or tests changed during the work.
 - Describe the bug/behavior, affected surface, root cause, fix, tests, and local Codex review result.
 - Call out public-surface impact when relevant: `No new config surface.` or, if a knob was unavoidable, explain why a safe default was not enough.

@@ -16,6 +16,7 @@ Do not use this workflow for release publishing, GHSA/advisory work, broad maint
 - Work in a separate git worktree that starts at `origin/main`.
 - Never put `[codex]`, `codex:`, AI-assistance markers, or similar process labels in the PR title.
 - Use a conventional-ish title and commit subject, such as `fix(scope): summary` or `test(scope): summary`.
+- Before committing, publishing, or updating a PR, compare the commit subject/body and PR title/body with the actual diff and validation. Amend commits and edit PR metadata whenever they are stale, overbroad, or missing material behavior.
 - Create the PR as ready for review, never draft.
 - Run `codex review --base origin/main` after every change batch and again before publishing.
 - Wait for every `codex review --base origin/main` run to finish. Do not stop early because it is slow.
@@ -157,6 +158,7 @@ facts without requiring maintainer-only infrastructure.
 
 ## Commit
 
+- Before committing, inspect the staged diff and review the planned commit subject/title and message against the actual change. If they no longer match the final patch, rewrite them before committing.
 - Use OpenClaw's commit helper for scoped commits when it is available:
 
 ```bash
@@ -167,6 +169,7 @@ scripts/committer "fix(scope): concise summary" <file> [<file> ...]
 - Keep the subject concise, conventional-ish, and action-oriented.
 - Add a body only when the change needs context; include root cause, validation, or compatibility notes rather than generic AI/process language.
 - Do not include `[codex]` or similar markers in the commit subject.
+- If later review fixes, rebases, or scope changes alter the behavior represented by the branch, amend or recreate the commit so the subject/title and message stay in sync before pushing or handing off.
 - If the helper is unavailable, stage only intended files and use an equivalent conventional-ish `git commit` without process labels.
 
 ## Publish Ready PR
@@ -188,6 +191,7 @@ PR title and body rules:
 - Title uses the repo convention, for example `fix(scope): summary`.
 - Do not include `[codex]`, `Codex`, AI-assistance markers, or similar process labels in the title.
 - If repo policy asks for AI assistance disclosure, put it in the PR body, not the title.
+- Before opening or updating the PR, compare the title and description against the final branch diff, exact-head proof, and validation actually run. Edit the title or body when the scope, behavior, proof, or tests changed during the work.
 - Describe the bug/behavior, affected surface, root cause, fix, tests, and local Codex review result.
 - Call out public-surface impact when relevant: `No new config surface.` or, if a knob was unavoidable, explain why a safe default was not enough.
 - Fill any `Real behavior proof` section with the exact fields the current template/checker expects. Use after-fix evidence from the PR head, not only historical bug evidence.
@@ -221,4 +225,5 @@ For existing PR refreshes, sweeps, and conflict triage:
 - Treat `CHANGELOG.md`-only conflicts or stale changelog comments as maintainer-owned drift unless a maintainer explicitly asks the contributor to change the changelog.
 - Rebase only for real conflicts, stale-base check failures, maintainer request, or a concrete validation reason.
 - For long-lived PRs, do not just resolve conflicts and rerun tests. Re-check whether `main` or dependency movement changed the owner contract, adjacent harness behavior, or the right place for the fix.
+- After any maintenance change, re-check the current commit subject/title, commit message, PR title, and PR description against the actual branch diff and latest validation. Amend/edit stale text before calling the PR ready.
 - For repo-wide sweeps, finish with a fresh full inventory of open PRs, mergeability, status rollup, unresolved review threads, top-level bot comments, and labels before handing off.

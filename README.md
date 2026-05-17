@@ -13,6 +13,7 @@ It guides an agent through a practical PR flow:
 - run targeted local validation and `codex review --base origin/main`
 - keep commit titles/messages and PR titles/descriptions synced with the actual diff and validation
 - publish a ready PR with concrete evidence
+- keep fork PRs editable by upstream maintainers so maintainer and ClawSweeper repair lanes can push follow-up commits
 - address threaded and top-level automated review feedback without using maintainer-only infrastructure
 - classify changelog-only drift separately from real code conflicts during PR maintenance
 

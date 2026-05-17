@@ -19,6 +19,7 @@ Do not use this workflow for release publishing, GHSA/advisory work, broad maint
 - Before committing, publishing, or updating a PR, compare the commit subject/body and PR title/body with the actual diff and validation. Amend commits and edit PR metadata whenever they are stale, overbroad, or missing material behavior.
 - Never leave PR-template placeholder text, instructional comments, example values, or TODO/TBD filler in the PR title or description. Preserve required headings/checklist labels only when the repo template or checker expects them; replace or remove placeholder content before `gh pr create`, `gh pr edit`, or equivalent UI updates.
 - Create the PR as ready for review, never draft.
+- For fork PRs, allow upstream maintainers to modify the PR branch. Do not pass `--no-maintainer-edit`; verify `maintainer_can_modify: true` after publication so maintainers and ClawSweeper repair/automerge lanes can push follow-up commits to the source branch.
 - Run `codex review --base origin/main` after every change batch and again before publishing.
 - Wait for every `codex review --base origin/main` run to finish. Do not stop early because it is slow.
 - Address every actionable local Codex review finding, then rerun `codex review --base origin/main`. Repeat until it returns no actionable feedback.
@@ -132,7 +133,7 @@ Use `gh pr diff` for the patch and a REST snapshot for structured state:
 PR=<number>
 REPO=openclaw/openclaw
 gh api "repos/$REPO/pulls/$PR" \
-  --jq '{number,title,state,draft,mergeable,mergeable_state,head:{ref:.head.ref,sha:.head.sha,repo:.head.repo.full_name},base:{ref:.base.ref,sha:.base.sha},user:.user.login,changed_files,additions,deletions,merged,merged_at,url:.html_url}'
+  --jq '{number,title,state,draft,mergeable,mergeable_state,maintainer_can_modify,head:{ref:.head.ref,sha:.head.sha,repo:.head.repo.full_name},base:{ref:.base.ref,sha:.base.sha},user:.user.login,changed_files,additions,deletions,merged,merged_at,url:.html_url}'
 gh api "repos/$REPO/pulls/$PR/files" --paginate \
   --jq '[.[] | {filename,status,additions,deletions,changes}]'
 gh api "repos/$REPO/pulls/$PR/reviews" --paginate \
@@ -185,7 +186,23 @@ git rebase origin/main
 2. Rerun affected checks if the rebase changes anything meaningful.
 3. Run the final clean `codex review --base origin/main`.
 4. Push the branch.
-5. Create a ready PR, not a draft. Use `.github/pull_request_template.md` and fill it with concrete evidence.
+5. Create a ready PR, not a draft. For fork PRs, leave maintainer edits enabled. With `gh pr create`, this means do not pass `--no-maintainer-edit`. Use `.github/pull_request_template.md` and fill it with concrete evidence.
+6. After the PR exists, verify maintainer edit permission on the exact PR:
+
+```bash
+PR=<number>
+REPO=openclaw/openclaw
+gh api "repos/$REPO/pulls/$PR" --jq '{number,head:{repo:.head.repo.full_name,ref:.head.ref},maintainer_can_modify}'
+```
+
+If the PR head is a fork and `maintainer_can_modify` is `false`, enable it before asking maintainers or ClawSweeper to repair, rebase, or automerge:
+
+```bash
+gh api -X PATCH "repos/$REPO/pulls/$PR" -F maintainer_can_modify=true \
+  --jq '{number,maintainer_can_modify}'
+```
+
+If GitHub refuses the update, report the exact permission error and say that maintainer/ClawSweeper push repair may need a replacement PR instead of silently continuing. If GitHub presents the broader "allow edits and access to secrets by maintainers" warning because the fork contains Actions workflows, call that out, but do not leave the setting disabled unless the user explicitly chooses that tradeoff.
 
 PR title and body rules:
 
@@ -205,7 +222,7 @@ PR title and body rules:
 After opening or updating the PR:
 
 1. Wait for automatic reviews and relevant checks on the exact PR head SHA. Poll at reasonable intervals.
-2. Fetch review submissions, review threads, top-level PR comments, labels, and status rollup. ClawSweeper or policy feedback can live in top-level comments even when GraphQL `reviewThreads` is empty.
+2. Fetch review submissions, review threads, top-level PR comments, labels, status rollup, and `maintainer_can_modify`. ClawSweeper or policy feedback can live in top-level comments even when GraphQL `reviewThreads` is empty.
 3. Address every actionable automated review comment in code or with a concise evidence-backed reply. If the current diff already resolves a stale comment, say that with evidence instead of changing code unnecessarily. Do not trigger maintainer-only review bots as a workaround for stale or missing bot updates.
 4. Resolve conversations that are fully addressed when the tool surface allows it.
 5. Push fixes and rerun:
@@ -223,6 +240,7 @@ Repeat until automatic reviews are complete and there are no unresolved actionab
 For existing PR refreshes, sweeps, and conflict triage:
 
 - Locate the active worktree with `git worktree list --porcelain` and `git branch -vv` before editing; do not use the root checkout out of convenience if the PR already has a worktree.
+- For fork PRs, check `maintainer_can_modify` before any maintainer handoff, rebase request, repair lane, or automerge request. If it is `false`, set it with the REST patch above or report the blocker clearly; do not ask for ClawSweeper repair/automerge on a branch it cannot push to.
 - Use `git merge-tree --write-tree --name-only origin/main <pr-ref>` or the closest current equivalent to separate real code conflicts from `CHANGELOG.md`-only drift.
 - Treat `CHANGELOG.md`-only conflicts or stale changelog comments as maintainer-owned drift unless a maintainer explicitly asks the contributor to change the changelog.
 - Rebase only for real conflicts, stale-base check failures, maintainer request, or a concrete validation reason.

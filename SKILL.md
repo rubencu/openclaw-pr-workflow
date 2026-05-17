@@ -1,6 +1,6 @@
 ---
 name: openclaw-pr-workflow
-description: "Guide unofficial contributor-safe OpenClaw PR work: verify behavior, make focused changes in a clean worktree, run local validation and Codex review, publish a ready PR, and handle automated feedback without using maintainer-only infrastructure."
+description: "Guide unofficial contributor-safe OpenClaw PR work: verify behavior, make focused changes in a clean worktree, run local validation and Codex review, prepare a PR for user review, open it as draft only after confirmation, and handle automated feedback without using maintainer-only infrastructure."
 ---
 
 # OpenClaw PR Workflow
@@ -16,14 +16,15 @@ Do not use this workflow for release publishing, GHSA/advisory work, broad maint
 - Work in a separate git worktree that starts at `origin/main`.
 - Never put `[codex]`, `codex:`, AI-assistance markers, or similar process labels in the PR title.
 - Use a conventional-ish title and commit subject, such as `fix(scope): summary` or `test(scope): summary`.
-- Before committing, publishing, or updating a PR, compare the commit subject/body and PR title/body with the actual diff and validation. Amend commits and edit PR metadata whenever they are stale, overbroad, or missing material behavior.
-- Never leave PR-template placeholder text, instructional comments, example values, or TODO/TBD filler in the PR title or description. Preserve required headings/checklist labels only when the repo template or checker expects them; replace or remove placeholder content before `gh pr create`, `gh pr edit`, or equivalent UI updates.
-- Create the PR as ready for review, never draft.
-- For fork PRs, allow upstream maintainers to modify the PR branch. Do not pass `--no-maintainer-edit`; verify `maintainer_can_modify: true` after publication so maintainers and ClawSweeper repair/automerge lanes can push follow-up commits to the source branch.
-- Run `codex review --base origin/main` after every change batch and again before publishing.
+- Before committing, handing off, opening, or updating a PR, compare the commit subject/body and PR title/body with the actual diff and validation. Amend commits and edit PR metadata whenever they are stale, overbroad, or missing material behavior.
+- Never leave PR-template placeholder text, instructional comments, example values, or TODO/TBD filler in the PR title or description. Preserve required headings/checklist labels only when the repo template or checker expects them; replace or remove placeholder content before showing proposed PR text, `gh pr create`, `gh pr edit`, or equivalent UI updates.
+- Do not push the branch or create a PR until the user has reviewed the final branch summary, validation, and proposed PR title/body, then explicitly confirms PR creation.
+- When the user confirms PR creation, open the PR as a draft. Do not mark it ready for review, run `gh pr ready`, remove draft status, or use an equivalent UI action until the user explicitly confirms ready-for-review after seeing the draft PR.
+- For fork PRs, allow upstream maintainers to modify the PR branch. Do not pass `--no-maintainer-edit`; verify `maintainer_can_modify: true` after draft publication so maintainers and ClawSweeper repair/automerge lanes can push follow-up commits to the source branch once the PR is ready.
+- Run `codex review --base origin/main` after every change batch and again before asking the user to confirm PR creation.
 - Wait for every `codex review --base origin/main` run to finish. Do not stop early because it is slow.
 - Address every actionable local Codex review finding, then rerun `codex review --base origin/main`. Repeat until it returns no actionable feedback.
-- After publishing, wait for automatic reviews to finish. Address actionable comments, push fixes, and repeat until no actionable review comments remain.
+- After the user confirms ready-for-review and the PR is marked ready, wait for automatic reviews to finish. Address actionable comments, push fixes, and repeat until no actionable review comments remain.
 - Treat `main` freshness as a bounded checkpoint, not an infinite chase. OpenClaw `main` can move extremely fast, with thousands of commits per day; it is impossible to prove a contributor PR is always rebased on the newest remote tip. Start from `origin/main`, refresh at natural checkpoints, and rebase again only for actual conflicts, stale-base CI failures, maintainer request, or meaningful integration risk.
 - Do not post maintainer-only bot-control comments from contributor PRs. This includes `@clawsweeper re-review`, `@clawsweeper review`, `@clawsweeper fix ci`, `@clawsweeper autofix`, `@clawsweeper automerge`, slash review commands, and similar bot commands. Before any public bot-control comment, verify the current GitHub actor is `OWNER`, `MEMBER`, or `COLLABORATOR`, or has `admin`, `maintain`, or `write` permission. If not, report in chat that maintainer re-review or maintainer action is needed instead; do not leave the command comment.
 - Do not add PR text that implies manual verification was not done. Separate agent-run validation from user/manual verification, and do not claim the agent manually verified something it did not verify.
@@ -174,7 +175,7 @@ scripts/committer "fix(scope): concise summary" <file> [<file> ...]
 - If later review fixes, rebases, or scope changes alter the behavior represented by the branch, amend or recreate the commit so the subject/title and message stay in sync before pushing or handing off.
 - If the helper is unavailable, stage only intended files and use an equivalent conventional-ish `git commit` without process labels.
 
-## Publish Ready PR
+## Prepare And Gate PR
 
 1. Refresh once against current main before pushing, unless the branch was already rebased recently and there is no evidence of conflict or stale-base risk. Do not keep rebasing only because `origin/main` advanced again while validation, review, or push work is in progress:
 
@@ -185,17 +186,25 @@ git rebase origin/main
 
 2. Rerun affected checks if the rebase changes anything meaningful.
 3. Run the final clean `codex review --base origin/main`.
-4. Push the branch.
-5. Create a ready PR, not a draft. For fork PRs, leave maintainer edits enabled. With `gh pr create`, this means do not pass `--no-maintainer-edit`. Use `.github/pull_request_template.md` and fill it with concrete evidence.
-6. After the PR exists, verify maintainer edit permission on the exact PR:
+4. Prepare the branch summary and proposed PR title/body from `.github/pull_request_template.md`, filling it with concrete evidence.
+5. Before pushing or creating any PR, hand off for user review with:
+   - the final diff scope
+   - validation run and results
+   - local Codex review result
+   - branch name and latest commit
+   - proposed PR title and body
+   - any remaining risks or untested branches
+6. Stop and wait for explicit user confirmation to open the draft PR. A broad initial request such as "fix this and open a PR" is permission to prepare this handoff, not permission to skip the final review gate.
+7. Only after the user confirms PR creation, push the branch and create a draft PR. For fork PRs, leave maintainer edits enabled. With `gh pr create`, pass `--draft` and do not pass `--no-maintainer-edit`.
+8. After the draft PR exists, verify it is still draft and verify maintainer edit permission on the exact PR:
 
 ```bash
 PR=<number>
 REPO=openclaw/openclaw
-gh api "repos/$REPO/pulls/$PR" --jq '{number,head:{repo:.head.repo.full_name,ref:.head.ref},maintainer_can_modify}'
+gh api "repos/$REPO/pulls/$PR" --jq '{number,draft,head:{repo:.head.repo.full_name,ref:.head.ref},maintainer_can_modify}'
 ```
 
-If the PR head is a fork and `maintainer_can_modify` is `false`, enable it before asking maintainers or ClawSweeper to repair, rebase, or automerge:
+If the PR head is a fork and `maintainer_can_modify` is `false`, enable it before asking maintainers or ClawSweeper to repair, rebase, or automerge after the PR is ready:
 
 ```bash
 gh api -X PATCH "repos/$REPO/pulls/$PR" -F maintainer_can_modify=true \
@@ -203,6 +212,8 @@ gh api -X PATCH "repos/$REPO/pulls/$PR" -F maintainer_can_modify=true \
 ```
 
 If GitHub refuses the update, report the exact permission error and say that maintainer/ClawSweeper push repair may need a replacement PR instead of silently continuing. If GitHub presents the broader "allow edits and access to secrets by maintainers" warning because the fork contains Actions workflows, call that out, but do not leave the setting disabled unless the user explicitly chooses that tradeoff.
+
+After opening the draft PR, report the draft URL and stop for user review unless the user asks for more iteration. Do not mark it ready for review until the user explicitly confirms. When the user confirms ready-for-review, re-check that the latest draft PR title/body still match the final diff and validation, then use `gh pr ready` or the equivalent UI action.
 
 PR title and body rules:
 
@@ -217,9 +228,9 @@ PR title and body rules:
 - For human verification, state concrete manual verification details the user supplied or a neutral line such as `User manual verification: owner performs final manual verification outside this agent run.` Do not write phrases like "didn't verify a full iteration", "not manually verified", or equivalent weak-verification disclaimers.
 - Do not describe missing Testbox access as a validation failure unless the user explicitly asked for Testbox. For normal contributor-style PRs, use a line such as `Broad validation: GitHub PR CI.`.
 
-## Post-PR Review Loop
+## Ready PR Review Loop
 
-After opening or updating the PR:
+Use this loop only after the user confirms ready-for-review and the draft PR has been marked ready:
 
 1. Wait for automatic reviews and relevant checks on the exact PR head SHA. Poll at reasonable intervals.
 2. Fetch review submissions, review threads, top-level PR comments, labels, status rollup, and `maintainer_can_modify`. ClawSweeper or policy feedback can live in top-level comments even when GraphQL `reviewThreads` is empty.
@@ -245,5 +256,5 @@ For existing PR refreshes, sweeps, and conflict triage:
 - Treat `CHANGELOG.md`-only conflicts or stale changelog comments as maintainer-owned drift unless a maintainer explicitly asks the contributor to change the changelog.
 - Rebase only for real conflicts, stale-base check failures, maintainer request, or a concrete validation reason.
 - For long-lived PRs, do not just resolve conflicts and rerun tests. Re-check whether `main` or dependency movement changed the owner contract, adjacent harness behavior, or the right place for the fix.
-- After any maintenance change, re-check the current commit subject/title, commit message, PR title, and PR description against the actual branch diff and latest validation. Amend/edit stale text before calling the PR ready.
+- After any maintenance change, re-check the current commit subject/title, commit message, PR title, and PR description against the actual branch diff and latest validation. Amend/edit stale text before asking the user to create a draft PR or mark an existing draft PR ready.
 - For repo-wide sweeps, finish with a fresh full inventory of open PRs, mergeability, status rollup, unresolved review threads, top-level bot comments, and labels before handing off.

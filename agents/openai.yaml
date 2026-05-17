@@ -1,7 +1,7 @@
 interface:
   display_name: "OpenClaw PR Workflow"
-  short_description: "Contributor-safe OpenClaw PRs with proof"
-  default_prompt: "Use $openclaw-pr-workflow to fix an OpenClaw issue and open a ready contributor PR."
+  short_description: "Contributor-safe OpenClaw PRs with review gates"
+  default_prompt: "Use $openclaw-pr-workflow to fix an OpenClaw issue and prepare the branch and PR text for my review."
 
 policy:
   allow_implicit_invocation: true

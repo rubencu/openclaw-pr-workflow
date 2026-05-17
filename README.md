@@ -12,7 +12,8 @@ It guides an agent through a practical PR flow:
 - produce real behavior proof from the exact PR head when OpenClaw asks for it
 - run targeted local validation and `codex review --base origin/main`
 - keep commit titles/messages and PR titles/descriptions synced with the actual diff and validation
-- publish a ready PR with concrete evidence
+- prepare the final branch and proposed PR text for user review before any PR is created
+- open the PR as draft only after confirmation, and mark it ready only after a second confirmation
 - keep fork PRs editable by upstream maintainers so maintainer and ClawSweeper repair lanes can push follow-up commits
 - address threaded and top-level automated review feedback without using maintainer-only infrastructure
 - classify changelog-only drift separately from real code conflicts during PR maintenance
@@ -49,7 +50,7 @@ git clone https://github.com/rubencu/openclaw-pr-workflow.git ~/.agents/skills/o
 Ask Codex to use the OpenClaw PR workflow for ordinary contributor PR work:
 
 ```text
-Use the openclaw-pr-workflow skill to fix this OpenClaw bug and open a ready PR.
+Use the openclaw-pr-workflow skill to fix this OpenClaw bug and prepare it for my review.
 ```
 
 Use a different workflow for releases, security advisories, broad maintainer triage,

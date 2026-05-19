@@ -100,8 +100,12 @@ When the PR template, labels, CI, ClawSweeper, or the user asks for real behavio
 2. Prove the failure on `origin/main` or another explicit base when the user asks for proof of the problem, or when a before/after claim would otherwise be weak.
 3. Prove the fix from a checkout containing the exact PR head. Record the head SHA, command or real workflow, environment, evidence after fix, observed result, and anything not tested.
 4. Treat tests, mocks, snapshots, lint, typechecks, and CI as supplemental. They support real behavior proof, but they do not replace real-environment after-fix evidence when the repo requires it.
-5. For gateway/runtime proof, isolate `HOME`/`OPENCLAW_HOME`, ports, tokens, generated artifacts, and logs so stale local state or mixed proof logs cannot contaminate the result.
-6. Before editing the PR body, validate the proposed proof text with `scripts/github/real-behavior-proof-policy.mjs` when available so the body satisfies the parser on the first try.
+5. Match proof to the reported user path. A direct `openclaw agent` run can prove the shared gateway, harness, and tool-auth boundary, but it does not prove a channel-specific path such as TUI, Telegram, Discord, or Slack unless that channel path is exercised. If full channel proof is infeasible, say exactly which lower boundary was proven and keep `What was not tested` explicit.
+6. For auth-dependent bugs, verify current auth freshness before both negative and positive proof. Use the same valid OAuth/API-key state for the base negative control and the PR-head proof whenever possible; stale-auth logs can explain a symptom but should not be used as the only bug proof.
+7. For gateway/runtime proof, isolate `HOME`/`OPENCLAW_HOME`, ports, tokens, generated artifacts, and logs so stale local state or mixed proof logs cannot contaminate the result. Stop foreground gateways, TUI sessions, and other live proof processes afterward; check for leftovers when proof used long-running sessions.
+8. For interactive TUI proof, run `pnpm tui` with a real PTY and verify the prompt was actually submitted. If `--message` does not visibly dispatch, type and submit the prompt in the connected TUI, then record that detail in the proof.
+9. For installed external plugins or harnesses, record whether proof used the bundled implementation or the installed external package. Same model/provider labels are not enough when package resolution can change tool behavior.
+10. Before editing the PR body, validate the proposed proof text with `scripts/github/real-behavior-proof-policy.mjs` when available so the body satisfies the parser on the first try.
 
 ## Codex Review Loop
 

@@ -9,7 +9,7 @@ It guides an agent through a practical PR flow:
 - verify the bug or behavior before changing code
 - keep the diff focused
 - prefer safe default behavior over new config or option surface
-- produce real behavior proof from the exact PR head when OpenClaw asks for it
+- produce real behavior proof from the exact PR head when explicitly asked, without rerunning live proof just because a branch was rebased or a commit changed
 - run targeted local validation and `codex review --base origin/main`
 - keep commit titles/messages and PR titles/descriptions synced with the actual diff and validation
 - prepare the final branch and proposed PR text for user review before any PR is created

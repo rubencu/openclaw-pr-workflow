@@ -32,6 +32,7 @@ Do not use this workflow for release publishing, GHSA/advisory work, broad maint
 - Do not require or preflight `gitcrawl`. `gitcrawl` is maintainer triage/discovery tooling and an optional local `gh` cache for agents; ordinary contributor PR work should proceed without it. If another OpenClaw repo instruction forces a maintainer read path for a pasted PR or issue URL, treat missing `gitcrawl` as a quiet reason to use live GitHub instead, not as a contributor setup problem.
 - Do not add new config options, CLI flags, env vars, channel knobs, or user-visible switches by default. Prefer a safe default behavior fix. Add configurable surface only when maintainers explicitly ask for it, repo docs already require it, or the behavior cannot safely be defaulted.
 - Treat real-behavior proof as exact-head, after-fix evidence. Historical logs can prove the old bug, but they do not prove the fix unless they come from a checkout containing the PR head.
+- Treat live real-behavior proof as an explicit-request action. Do not rerun live proof just because a branch was rebased, a commit was amended or recreated, PR text changed, or checks were refreshed. If code movement or reviewer feedback makes the existing proof stale, report that fresh live proof is needed and wait for user instruction before running it.
 - Do not call a PR ready from mergeability or green checks alone. Check unresolved review threads, top-level bot comments, current labels, and the exact PR head SHA.
 - Do not treat automated "best possible fix" wording as proof by itself. It is only decision-grade when the review also checked the relevant owner contract, adjacent implementations, and plausible maintainer-level alternatives.
 
@@ -94,18 +95,19 @@ Before calling the patch best-available or ready:
 
 ## Real Behavior Proof
 
-When the PR template, labels, CI, ClawSweeper, or the user asks for real behavior proof:
+When the user explicitly asks you to run or refresh live real-behavior proof, or tells you to satisfy a proof request from the PR template, labels, CI, or ClawSweeper:
 
 1. Fetch/read the current proof policy from the repo before interpreting labels or schema. Start with `.github/pull_request_template.md`, `CONTRIBUTING.md`, `.github/workflows/real-behavior-proof.yml`, and `scripts/github/real-behavior-proof-policy.mjs` when present.
 2. Prove the failure on `origin/main` or another explicit base when the user asks for proof of the problem, or when a before/after claim would otherwise be weak.
 3. Prove the fix from a checkout containing the exact PR head. Record the head SHA, command or real workflow, environment, evidence after fix, observed result, and anything not tested.
-4. Treat tests, mocks, snapshots, lint, typechecks, and CI as supplemental. They support real behavior proof, but they do not replace real-environment after-fix evidence when the repo requires it.
-5. Match proof to the reported user path. A direct `openclaw agent` run can prove the shared gateway, harness, and tool-auth boundary, but it does not prove a channel-specific path such as TUI, Telegram, Discord, or Slack unless that channel path is exercised. If full channel proof is infeasible, say exactly which lower boundary was proven and keep `What was not tested` explicit.
-6. For auth-dependent bugs, verify current auth freshness before both negative and positive proof. Use the same valid OAuth/API-key state for the base negative control and the PR-head proof whenever possible; stale-auth logs can explain a symptom but should not be used as the only bug proof.
-7. For gateway/runtime proof, isolate `HOME`/`OPENCLAW_HOME`, ports, tokens, generated artifacts, and logs so stale local state or mixed proof logs cannot contaminate the result. Stop foreground gateways, TUI sessions, and other live proof processes afterward; check for leftovers when proof used long-running sessions.
-8. For interactive TUI proof, run `pnpm tui` with a real PTY and verify the prompt was actually submitted. If `--message` does not visibly dispatch, type and submit the prompt in the connected TUI, then record that detail in the proof.
-9. For installed external plugins or harnesses, record whether proof used the bundled implementation or the installed external package. Same model/provider labels are not enough when package resolution can change tool behavior.
-10. Before editing the PR body, validate the proposed proof text with `scripts/github/real-behavior-proof-policy.mjs` when available so the body satisfies the parser on the first try.
+4. After later rebases, commit amendments, force pushes, metadata edits, or check refreshes, reuse recorded live proof only as prior after-fix evidence when the proved behavior is unchanged. Do not silently relabel old proof as exact-head proof for a new SHA. If current policy or reviewer feedback requires exact-head proof on the current SHA, say fresh live proof is needed and wait for explicit user direction before rerunning it.
+5. Treat tests, mocks, snapshots, lint, typechecks, and CI as supplemental. They support real behavior proof, but they do not replace real-environment after-fix evidence when the repo requires it.
+6. Match proof to the reported user path. A direct `openclaw agent` run can prove the shared gateway, harness, and tool-auth boundary, but it does not prove a channel-specific path such as TUI, Telegram, Discord, or Slack unless that channel path is exercised. If full channel proof is infeasible, say exactly which lower boundary was proven and keep `What was not tested` explicit.
+7. For auth-dependent bugs, verify current auth freshness before both negative and positive proof. Use the same valid OAuth/API-key state for the base negative control and the PR-head proof whenever possible; stale-auth logs can explain a symptom but should not be used as the only bug proof.
+8. For gateway/runtime proof, isolate `HOME`/`OPENCLAW_HOME`, ports, tokens, generated artifacts, and logs so stale local state or mixed proof logs cannot contaminate the result. Stop foreground gateways, TUI sessions, and other live proof processes afterward; check for leftovers when proof used long-running sessions.
+9. For interactive TUI proof, run `pnpm tui` with a real PTY and verify the prompt was actually submitted. If `--message` does not visibly dispatch, type and submit the prompt in the connected TUI, then record that detail in the proof.
+10. For installed external plugins or harnesses, record whether proof used the bundled implementation or the installed external package. Same model/provider labels are not enough when package resolution can change tool behavior.
+11. Before editing the PR body, validate the proposed proof text with `scripts/github/real-behavior-proof-policy.mjs` when available so the body satisfies the parser on the first try.
 
 ## Codex Review Loop
 
@@ -188,7 +190,7 @@ git fetch origin main
 git rebase origin/main
 ```
 
-2. Rerun affected checks if the rebase changes anything meaningful.
+2. Rerun affected local checks if the rebase changes anything meaningful. Do not rerun live real-behavior proof as part of the rebase unless the user explicitly asks for it.
 3. Run the final clean `codex review --base origin/main`.
 4. Prepare the branch summary and proposed PR title/body from `.github/pull_request_template.md`, filling it with concrete evidence.
 5. Before pushing or creating any PR, hand off for user review with:

@@ -17,6 +17,7 @@ It guides an agent through a practical PR flow:
 - keep fork PRs editable by upstream maintainers so maintainer and ClawSweeper repair lanes can push follow-up commits
 - address threaded and top-level automated review feedback without using maintainer-only infrastructure
 - classify changelog-only drift separately from real code conflicts during PR maintenance
+- record install source, package identity, and approval boundaries when proof uses an external OpenClaw plugin such as [TweetClaw](https://github.com/Xquik-dev/tweetclaw)
 
 It does not require `gitcrawl`. That tool is useful for maintainer
 triage/discovery and optional local `gh` caching, but contributor PR work should

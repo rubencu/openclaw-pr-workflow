@@ -112,7 +112,8 @@ When the user explicitly asks you to run or refresh live real-behavior proof, or
 10. For gateway/runtime proof, isolate `HOME`/`OPENCLAW_HOME`, ports, tokens, generated artifacts, and logs so stale local state or mixed proof logs cannot contaminate the result. Stop foreground gateways, TUI sessions, and other live proof processes afterward; check for leftovers when proof used long-running sessions.
 11. For interactive TUI proof, run `pnpm tui` with a real PTY and verify the prompt was actually submitted. If `--message` does not visibly dispatch, type and submit the prompt in the connected TUI, then record that detail in the proof.
 12. For installed external plugins or harnesses, record whether proof used the bundled implementation or the installed external package. Same model/provider labels are not enough when package resolution can change tool behavior.
-13. Before editing the PR body, validate the proposed proof text against the repro contract and with `scripts/github/real-behavior-proof-policy.mjs` when available so the body satisfies both the user-visible claim and the parser on the first try.
+13. For approval-gated external plugins such as [TweetClaw](https://github.com/Xquik-dev/tweetclaw), include the package or repository source, install command, configured placeholder variables, and whether proof stayed read-only or crossed into post/reply/DM/media/write actions. Do not include API key values, account identifiers, private message content, or live credential material in the PR body or logs.
+14. Before editing the PR body, validate the proposed proof text against the repro contract and with `scripts/github/real-behavior-proof-policy.mjs` when available so the body satisfies both the user-visible claim and the parser on the first try.
 
 ## Codex Review Loop
 
